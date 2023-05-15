@@ -1,14 +1,17 @@
 import { ISocket } from "@/interfaces/socket";
 import { createSocket, Socket } from "dgram";
 import os from "os";
+import readline from "readline";
 export class UdpSocket implements ISocket {
   private readonly socket: Socket;
   private readonly ip: string;
+  private rl: readline.Interface;
 
   public constructor(private readonly PORT: number) {
     this.socket = this.create();
     this.ip = this.getAddress();
     this.listen();
+    this.rl = this.read();
 
     this.socket.bind(PORT);
   }
@@ -17,6 +20,13 @@ export class UdpSocket implements ISocket {
     this.socket.on("message", this.onMessage);
     this.socket.on("error", this.onErrorHandler);
     this.socket.on("listening", this.onListen);
+  }
+
+  public read() {
+    return readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
   }
 
   private onListen() {
@@ -52,6 +62,12 @@ export class UdpSocket implements ISocket {
   public create() {
     return createSocket("udp4", () => {
       console.log("Socket established at port " + this.PORT);
+    });
+  }
+
+  public askMessage(ip: string) {
+    this.rl.question("Enter message: ", (message: string) => {
+      this.send(ip, 3000, message);
     });
   }
 
