@@ -39,18 +39,20 @@ export class UdpSocket implements ISocket {
     this.buf.write(msg);    
   }
 
+  private counter: number = 0;
   public sendFile() {
-    // const rr = Buffer.from("rogorxar");
-    // console.log(rr);
-    const data = fs.createReadStream(__dirname + "/../pictures/desert.jpg");
+    const data = fs.createReadStream(__dirname + "/desert.jpg", { highWaterMark: 10 });
     data.on("data", (chunk) => {
-      console.log(chunk);
-      this.socket.send(
-        chunk,
-        this.port,
-        this.address,
-        (err: Error | null, bytes: number) => {}
-      );
+      if(this.counter < 300) {
+        console.log(chunk);
+        this.socket.send(
+          chunk,
+          this.port,
+          this.address,
+          (err: Error | null, bytes: number) => {}
+        );
+        this.counter++;  
+      }
     });
   }
 
