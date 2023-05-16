@@ -8,7 +8,10 @@ export class UdpSocket implements ISocket {
   private rl: readline.Interface;
   private buf: fs.WriteStream;
 
-  public constructor(private readonly PORT: number, private readonly receiver_ip: string) {
+  public constructor(
+    private readonly PORT: number,
+    private readonly receiver_ip: string
+  ) {
     this.socket = createSocket("udp4");
     this.listen();
     this.rl = this.read();
@@ -32,27 +35,24 @@ export class UdpSocket implements ISocket {
     console.log(err);
   }
 
-
   private onMessage(msg: Buffer | string) {
     console.log("\n" + this.receiver_ip + ": ", msg);
-    
-    this.buf.write(msg);    
+
+    this.buf.write(msg);
   }
 
-  private counter: number = 0;
   public sendFile() {
-    const data = fs.createReadStream(__dirname + "/desert.jpg", { highWaterMark: 10 });
+    const data = fs.createReadStream(__dirname + "/desert.jpg", {
+      highWaterMark: 10,
+    });
     data.on("data", (chunk) => {
-      if(this.counter < 300) {
-        console.log(chunk);
-        this.socket.send(
-          chunk,
-          this.port,
-          this.address,
-          (err: Error | null, bytes: number) => {}
-        );
-        this.counter++;  
-      }
+      console.log(chunk);
+      this.socket.send(
+        chunk,
+        this.port,
+        this.address,
+        (err: Error | null, bytes: number) => {}
+      );
     });
   }
 
