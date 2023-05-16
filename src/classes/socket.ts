@@ -1,25 +1,24 @@
 import { ISocket } from "@/interfaces/socket";
 import { createSocket, Socket } from "dgram";
-import os from "os";
 import readline from "readline";
+import fs from "fs";
 
 export class UdpSocket implements ISocket {
   private readonly socket: Socket;
-  private readonly ip: string;
   private rl: readline.Interface;
+  private buf: fs.WriteStream;
 
-  public constructor(private readonly PORT: number) {
+  public constructor(private readonly PORT: number, private readonly receiver_ip: string) {
     this.socket = createSocket("udp4");
-    this.ip = this.getAddress();
     this.listen();
     this.rl = this.read();
-
     this.socket.bind(PORT);
+    this.buf = fs.createWriteStream(__dirname + "/image.jpg");
   }
 
   private listen() {
-    this.socket.on("message", this.onMessage);
-    this.socket.on("error", this.onErrorHandler);
+    this.socket.on("message", this.onMessage.bind(this));
+    this.socket.on("error", this.onErrorHandler.bind(this));
   }
 
   public read() {
@@ -29,39 +28,37 @@ export class UdpSocket implements ISocket {
     });
   }
 
-
   private onErrorHandler(err: Error) {
     console.log(err);
   }
 
-  private onMessage(msg: string | Buffer) {
-    console.log("\nGiga: " + msg.toString());
+
+  private onMessage(msg: Buffer | string) {
+    console.log("\n" + this.receiver_ip + ": ", msg);
+    
+    this.buf.write(msg);    
   }
 
-  private getAddress() {
-    const networkInterfaces = os.networkInterfaces();
-
-    // Iterate over network interfaces
-    for (const interfaceName of Object.keys(networkInterfaces)) {
-      const interfaces = networkInterfaces[interfaceName];
-      if (!interfaces) return "";
-      // Iterate over addresses for each network interface
-      for (const iface of interfaces) {
-        // Skip over non-IPv4 and internal (loopback) addresses
-        if (iface.family === "IPv4" && !iface.internal) {
-          return iface.address;
-        }
-      }
-    }
-
-    return "";
+  public sendFile() {
+    // const rr = Buffer.from("rogorxar");
+    // console.log(rr);
+    const data = fs.createReadStream(__dirname + "/../pictures/desert.jpg");
+    data.on("data", (chunk) => {
+      console.log(chunk);
+      this.socket.send(
+        chunk,
+        this.port,
+        this.address,
+        (err: Error | null, bytes: number) => {}
+      );
+    });
   }
 
-  public askMessage(ip: string) {
+  public askMessage() {
     this.rl.question("", (message: string) => {
-      this.send(ip, 3000, message);
+      this.send(this.receiver_ip, 3000, message);
       setTimeout(() => {
-        this.askMessage(ip);
+        this.askMessage();
       }, 0);
     });
   }
@@ -73,7 +70,7 @@ export class UdpSocket implements ISocket {
   }
 
   public get address() {
-    return this.ip;
+    return this.receiver_ip;
   }
 
   public get port() {
