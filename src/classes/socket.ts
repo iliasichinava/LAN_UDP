@@ -2,13 +2,14 @@ import { ISocket } from "@/interfaces/socket";
 import { createSocket, Socket } from "dgram";
 import os from "os";
 import readline from "readline";
+
 export class UdpSocket implements ISocket {
   private readonly socket: Socket;
   private readonly ip: string;
   private rl: readline.Interface;
 
   public constructor(private readonly PORT: number) {
-    this.socket = this.create();
+    this.socket = createSocket("udp4");
     this.ip = this.getAddress();
     this.listen();
     this.rl = this.read();
@@ -19,7 +20,6 @@ export class UdpSocket implements ISocket {
   private listen() {
     this.socket.on("message", this.onMessage);
     this.socket.on("error", this.onErrorHandler);
-    this.socket.on("listening", this.onListen);
   }
 
   public read() {
@@ -29,16 +29,13 @@ export class UdpSocket implements ISocket {
     });
   }
 
-  private onListen() {
-    console.log("Listening");
-  }
 
   private onErrorHandler(err: Error) {
     console.log(err);
   }
 
   private onMessage(msg: string | Buffer) {
-    console.log(msg.toString());
+    console.log("\nGiga: " + msg.toString());
   }
 
   private getAddress() {
@@ -59,23 +56,19 @@ export class UdpSocket implements ISocket {
 
     return "";
   }
-  public create() {
-    return createSocket("udp4", () => {
-      console.log("Socket established at port " + this.PORT);
-    });
-  }
 
   public askMessage(ip: string) {
-    this.rl.question("Enter message: ", (message: string) => {
+    this.rl.question("", (message: string) => {
       this.send(ip, 3000, message);
+      setTimeout(() => {
+        this.askMessage(ip);
+      }, 0);
     });
   }
 
   public send(ip: string, port: number, msg: string | Buffer): void {
-    this.socket.send(msg, port, ip, (err: Error | null) => {
+    this.socket.send(`${msg}\n`, port, ip, (err: Error | null) => {
       if (err) throw err;
-
-      console.log("Message sent: " + msg);
     });
   }
 
